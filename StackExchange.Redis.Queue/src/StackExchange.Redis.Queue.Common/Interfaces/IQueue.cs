@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 
 namespace StackExchange.Redis.Queue.Common.Interfaces
 {
-    public interface IQueue
+    public interface IQueue : IDisposable
     {
-        void Connect(string connectionString);
-
+        
         void Enqueue<T>(T message, string queueName);
 
         Task<List<T>> DequeueAsync<T>(string queueName, int messageAmount = 1);

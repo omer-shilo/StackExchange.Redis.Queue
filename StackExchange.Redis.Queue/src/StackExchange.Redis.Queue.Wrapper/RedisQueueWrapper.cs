@@ -10,45 +10,26 @@ namespace StackExchange.Redis.Queue.Wrapper
     public class RedisQueueWrapper : IQueue
     {
         #region Fields
-        private static readonly object _syncObj = new object();
-        private static RedisQueueWrapper _Instance;
+        
         #endregion
 
         #region Properties
-
-        public static RedisQueueWrapper Instance
-        {
-            get
-            {
-                if (_Instance == null)
-                {
-                    lock (_syncObj)
-                    {
-                        if (_Instance == null)
-                        {
-                            _Instance = new RedisQueueWrapper();
-                        }
-                    }
-                }
-
-                return _Instance;
-            }
-        }
-
-        private ConnectionMultiplexer _ConnectionMultiplexer { get; set; }
+        
+        public ConnectionMultiplexer Connection { get; set; }
         #endregion
-        private RedisQueueWrapper()
+        public RedisQueueWrapper(string connectionString)
         {
+            Connect(connectionString);
         }
         
-        public void Connect(string connectionString)
+        private void Connect(string connectionString)
         {
             try
             {
-                if (_ConnectionMultiplexer == null)
+                if (Connection == null)
                 {
-                    _ConnectionMultiplexer = ConnectionMultiplexer.Connect(connectionString);
-                    _ConnectionMultiplexer.PreserveAsyncOrder = false;
+                    Connection = ConnectionMultiplexer.Connect(connectionString);
+                    Connection.PreserveAsyncOrder = false;
                 }
             }
             catch (Exception ex)
@@ -61,7 +42,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var db = _ConnectionMultiplexer.GetDatabase();
+                var db = Connection.GetDatabase();
 
                 db.ListLeftPush(queueName, Message.SerializeObject(message), When.Always, CommandFlags.FireAndForget);
             }
@@ -75,7 +56,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var db = _ConnectionMultiplexer.GetDatabase();
+                var db = Connection.GetDatabase();
                 var resultList = new List<T>();
 
                 for (var i = 0; i < messageAmount; i++)
@@ -104,7 +85,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var db = _ConnectionMultiplexer.GetDatabase();
+                var db = Connection.GetDatabase();
                 var resultList = new List<T>();
 
                 for (var i = 0; i < messageAmount; i++)
@@ -133,7 +114,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var pub = _ConnectionMultiplexer.GetSubscriber();
+                var pub = Connection.GetSubscriber();
 
                 Enqueue(message, queueName);
                 pub.Publish(queueName, "", CommandFlags.FireAndForget);
@@ -148,7 +129,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var sub = _ConnectionMultiplexer.GetSubscriber();
+                var sub = Connection.GetSubscriber();
 
                 sub.SubscribeAsync(queueName, async delegate
                  {
@@ -167,7 +148,7 @@ namespace StackExchange.Redis.Queue.Wrapper
         {
             try
             {
-                var sub = _ConnectionMultiplexer.GetSubscriber();
+                var sub = Connection.GetSubscriber();
 
                 sub.Subscribe(queueName,  delegate
                 {
@@ -179,6 +160,18 @@ namespace StackExchange.Redis.Queue.Wrapper
             catch (Exception ex)
             {
                 throw new Exception($"There was a problem with performing {nameof(Subscribe)}, queue name: {queueName}", ex);
+            }
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                Connection.Dispose();
+            }
+            catch (Exception)
+            {
+                Connection = null;
             }
         }
     }

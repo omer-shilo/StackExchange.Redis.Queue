@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis.Queue.Common;
 using StackExchange.Redis.Queue.Common.Interfaces;
 using StackExchange.Redis.Queue.Wrapper;
-using Unity;
 
 namespace Listener
 {
@@ -13,49 +14,40 @@ namespace Listener
     {
         private static int counter = 0;
 
+        public static IServiceProvider ServiceProvider { get; private set; }
+        private static Timer PollingTimer { get; set; }
+
         public static void Main(string[] args)
         {
-            using (var container = new UnityContainer())
-            {
-                container.RegisterInstance(typeof(IQueue), RedisQueueWrapper.Instance);
-                var queue = container.Resolve<QueueUsage>();
+            RegisterTypes();
 
-                queue.Connect("localhost:6379");
-
-                var action = new Action<List<string>>((inputList) =>
-                {
-                    foreach (var item in inputList)
-                    {
-                        counter++;
-                        Console.WriteLine($"The following message was extracted : {item}, counter : {counter}");
-                    }
-                });
-
-                CleanQueue(queue,"StringQueue", action);
+            using (var queue = ServiceProvider.GetService<IQueue>())
+            { 
                 Console.WriteLine("Starting listening to the queue");
-                queue.SubscribeAsync<string>("StringQueue",action,50);
-                Console.WriteLine("Press Any Key To Finish");
+                PollingTimer = new Timer(async state =>
+                {
+                    var messages = await queue.DequeueAsync<string>("StringQueue", 50);
+
+                    if (messages.Any())
+                    {
+                        foreach (var msg in messages)
+                        {
+                            Console.WriteLine($"message content : {msg}");
+                            counter++;
+                        }
+                    }
+                },null, 0, 100 );
+
                 Console.ReadKey();
+                PollingTimer.Dispose();
+                Console.WriteLine($"Listener processed {counter} messages in total.");
             }
         }
 
-        private static async void CleanQueue<T>(IQueue queue,string queueName, Action<List<T>> action )
+        private static void RegisterTypes()
         {
-            var flag = true;
-
-            while (flag)
-            {
-                var res = await queue.DequeueAsync<T>(queueName, 50);
-
-                if (res.Count != 0)
-                {
-                    action(res);
-                }
-                else
-                {
-                    flag = false;
-                }
-            }
+            var collection = new ServiceCollection().AddSingleton<IQueue>(new RedisQueueWrapper("localhost:6379"));
+            ServiceProvider = collection.BuildServiceProvider();
         }
     }
 }

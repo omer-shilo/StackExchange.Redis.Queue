@@ -2,30 +2,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis.Queue.Common;
 using StackExchange.Redis.Queue.Common.Interfaces;
 using StackExchange.Redis.Queue.Wrapper;
-using Unity;
 
 namespace Publisher
 {
     public class Program
     {
+        public static IServiceProvider ServiceProvider { get; private set; }
+
         public static void Main(string[] args)
         {
-            using (var container = new UnityContainer())
+            RegisterTypes();
+
+            using (var queue = ServiceProvider.GetService<IQueue>())
             {
-                container.RegisterInstance(typeof(IQueue), RedisQueueWrapper.Instance);
-                var queue = container.Resolve<QueueUsage>();
-
-                queue.Connect("localhost:6379");
-
+            
                 var amount = 10000;
                 Console.WriteLine($"You are about to send {amount} messages, Press any key to start");
                 Console.ReadKey();
                 for (var i = 0; i < amount; i++)
                 {
-                    queue.Publish<string>("Test Message", "StringQueue");
+                    queue.Enqueue<string>("Test Message", "StringQueue");
                     Console.WriteLine($"Sent {i} messages");
                 }
 
@@ -34,5 +34,12 @@ namespace Publisher
                 Console.ReadKey();
             }
         }
+
+        private static void RegisterTypes()
+        {
+            var collection = new ServiceCollection().AddSingleton<IQueue>(new RedisQueueWrapper("localhost:6379"));
+            ServiceProvider = collection.BuildServiceProvider();
+        }
+
     }
 }

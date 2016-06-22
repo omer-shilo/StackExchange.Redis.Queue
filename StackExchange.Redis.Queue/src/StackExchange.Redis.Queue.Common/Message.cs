@@ -29,14 +29,22 @@ namespace StackExchange.Redis.Queue.Common
         #region Public
         public static string SerializeObject(object inputObject)
         {
-            var resultString = JsonConvert.SerializeObject(inputObject);
+            var settings = new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.All
+            };
+            var resultString = JsonConvert.SerializeObject(inputObject, settings);
 
             return resultString;
         }
 
         public static TZ DeserializeObject<TZ>(string inputString)
         {
-            var resultObject = JsonConvert.DeserializeObject<TZ>(inputString);
+            var settings = new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.All
+            };
+            var resultObject = JsonConvert.DeserializeObject<TZ>(inputString, settings);
 
             return resultObject;
         }  
