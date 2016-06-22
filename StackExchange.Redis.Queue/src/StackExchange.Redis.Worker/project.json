@@ -1,4 +1,4 @@
-{
+﻿{
   "version": "1.0.0-*",
   "buildOptions": {
     "emitEntryPoint": true
@@ -9,10 +9,11 @@
       "type": "platform",
       "version": "1.0.0-rc2-3002702"
     },
+    "Microsoft.Extensions.DependencyInjection": "1.0.0-rc2-final",
+    "Microsoft.Extensions.DependencyInjection.Abstractions": "1.0.0-rc2-final",
     "StackExchange.Redis.Queue.Common": "1.0.0-*",
     "StackExchange.Redis.Queue.Wrapper": "1.0.0-*",
-    "Microsoft.Extensions.DependencyInjection": "1.0.0-rc2-final",
-    "Microsoft.Extensions.DependencyInjection.Abstractions": "1.0.0-rc2-final" 
+    "StackExchange.Redis.Message.Common": "1.0.0-*"
   },
 
   "frameworks": {

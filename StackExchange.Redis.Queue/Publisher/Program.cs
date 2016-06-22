@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis.Message.Common.Messages;
 using StackExchange.Redis.Queue.Common;
 using StackExchange.Redis.Queue.Common.Interfaces;
 using StackExchange.Redis.Queue.Wrapper;
@@ -20,13 +21,24 @@ namespace Publisher
             using (var queue = ServiceProvider.GetService<IQueue>())
             {
             
-                var amount = 10000;
+                var amount = 10;
                 Console.WriteLine($"You are about to send {amount} messages, Press any key to start");
                 Console.ReadKey();
                 for (var i = 0; i < amount; i++)
                 {
-                    queue.Enqueue<string>("Test Message", "StringQueue");
-                    Console.WriteLine($"Sent {i} messages");
+                    queue.Enqueue<FileWriteMessage>(new FileWriteMessage(@"D:\Temp\logFile.txt")
+                    {
+                        Lines = new List<string>() { "line 1","line 2"}
+                    }, "FileQueue");
+
+                    Console.WriteLine($"Sent {i} {nameof(FileWriteMessage)} messages");
+                }
+
+                for (var i = 0; i < amount; i++)
+                {
+                    queue.Enqueue<ConsoleWriteMessage>(new ConsoleWriteMessage($"Message number {i}"), "ConsoleQueue");
+
+                    Console.WriteLine($"Sent {i}  {nameof(ConsoleWriteMessage)} messages");
                 }
 
                 Console.WriteLine($"Finished sending {amount} messages");
